@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Wisuda Moodboard — Dinda</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --black: #0b0a0a;
+    --black-2: #141212;
+    --silver: #c7c5c8;
+    --silver-dim: #8d8a8f;
+    --maroon: #7c1f2a;
+    --maroon-bright: #a52a37;
+    --line: #2c2828;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--black);
+    color: var(--silver);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    overflow-x: hidden;
+  }
+  .cover {
+    min-height: 80vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 6vh 6vw;
+    background:
+      radial-gradient(ellipse at 50% 20%, rgba(124,31,42,0.25), transparent 60%),
+      linear-gradient(180deg, #0b0a0a 0%, #120d0e 100%);
+    border-bottom: 1px solid var(--line);
+  }
+  .cover .kicker {
+    letter-spacing: 0.45em;
+    font-size: 0.72rem;
+    color: var(--maroon-bright);
+    text-transform: uppercase;
+    margin-bottom: 1.6rem;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .cover h1 {
+    font-size: clamp(2.6rem, 8vw, 6rem);
+    margin: 0;
+    letter-spacing: 0.03em;
+    font-weight: 400;
+    color: var(--silver);
+    line-height: 1.05;
+  }
+  .cover h1 em { font-style: italic; color: var(--maroon-bright); }
+  .cover .sub {
+    margin-top: 2rem;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.95rem;
+    color: var(--silver-dim);
+    letter-spacing: 0.06em;
+    max-width: 40em;
+    line-height: 1.9;
+  }
+  .cover .venues {
+    margin-top: 2.5rem;
+    display: flex; gap: 2.5rem; flex-wrap: wrap;
+    justify-content: center;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--silver);
+  }
+  .cover .venues span::before { content: "◆ "; color: var(--maroon-bright); }
+
+  .toolbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; justify-content: center; align-items: center; gap: 1rem;
+    padding: 0.8rem 1rem;
+    background: rgba(11,10,10,0.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    flex-wrap: wrap;
+  }
+  .toolbar .hint { color: var(--silver-dim); }
+  .toolbar button {
+    background: transparent;
+    border: 1px solid var(--maroon);
+    color: var(--silver);
+    padding: 0.5rem 1rem;
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .toolbar button:hover { background: var(--maroon); color: #fff; }
+  .toolbar button.active { background: var(--maroon-bright); color: #fff; border-color: var(--maroon-bright); }
+
+  body.edit-mode [data-edit-id] {
+    outline: 1px dashed var(--maroon-bright);
+    outline-offset: 4px;
+    cursor: text;
+    border-radius: 2px;
+  }
+  body.edit-mode [data-edit-id]:hover { background: rgba(124,31,42,0.12); }
+  body.edit-mode [data-edit-id]:focus { outline-style: solid; background: rgba(124,31,42,0.16); }
+
+  section.spread {
+    padding: 7vh 6vw 8vh;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+  }
+  section.spread:nth-of-type(even) {
+    background: linear-gradient(180deg, transparent, rgba(124,31,42,0.05), transparent);
+  }
+  .spread-head { display: flex; align-items: baseline; gap: 1.6rem; margin-bottom: 3.5rem; }
+  .spread-head .num {
+    font-size: clamp(3.5rem, 9vw, 8rem);
+    color: var(--maroon);
+    font-weight: 400; line-height: 1; opacity: 0.55; font-style: italic;
+  }
+  .spread-head .titles { display: flex; flex-direction: column; gap: 0.5rem; }
+  .spread-head .titles .eyebrow {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.72rem; letter-spacing: 0.4em; text-transform: uppercase;
+    color: var(--silver-dim);
+  }
+  .spread-head .titles h2 {
+    margin: 0;
+    font-size: clamp(1.8rem, 4vw, 3.2rem);
+    font-weight: 400; letter-spacing: 0.02em; color: var(--silver);
+    border-bottom: 1px solid var(--maroon);
+    padding-bottom: 0.4rem;
+    display: inline-block;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 1rem;
+    transition: outline 0.15s; outline: 2px dashed transparent; outline-offset: 8px;
+  }
+  .grid.dragover { outline-color: var(--maroon-bright); background: rgba(124,31,42,0.08); }
+
+  .ph {
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: var(--black-2);
+    position: relative;
+    cursor: grab;
+  }
+  .ph.dragging { opacity: 0.35; }
+  .ph img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(0.92) contrast(1.03); transition: transform 0.4s ease, filter 0.4s ease; pointer-events: none; }
+  .ph:hover img { transform: scale(1.05); filter: saturate(1.05) contrast(1.06); }
+  .ph .del {
+    position: absolute; top: 6px; right: 6px;
+    width: 26px; height: 26px;
+    background: rgba(11,10,10,0.75);
+    border: 1px solid var(--maroon-bright);
+    color: var(--silver);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 1rem; line-height: 1; cursor: pointer;
+    opacity: 0; transition: opacity 0.15s, background 0.15s;
+  }
+  .ph:hover .del { opacity: 1; }
+  .ph .del:hover { background: var(--maroon-bright); }
+  .ph .num-badge {
+    position: absolute; bottom: 6px; left: 6px;
+    min-width: 24px; height: 24px; padding: 0 6px;
+    background: rgba(11,10,10,0.8);
+    border: 1px solid var(--maroon-bright);
+    color: var(--silver);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.78rem; font-weight: 600;
+  }
+
+  .add-tile {
+    aspect-ratio: 3/4;
+    border: 1px dashed var(--line);
+    color: var(--silver-dim);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+    text-align: center; padding: 1rem;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .add-tile:hover { border-color: var(--maroon-bright); color: var(--silver); }
+  .add-tile .plus { font-size: 1.8rem; font-family: Georgia, serif; color: var(--maroon-bright); }
+
+  footer {
+    padding: 5vh 6vw 8vh; text-align: center;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--silver-dim);
+  }
+  footer .heart { color: var(--maroon-bright); }
+
+  @media (max-width: 680px) {
+    .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    .spread-head { gap: 0.8rem; }
+    .toolbar { flex-wrap: wrap; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <span class="hint">Drag foto buat nambah/tukar urutan &middot; angka = urutan tiap sesi</span>
+    <button id="editBtn">Edit Teks: OFF</button>
+    <button id="resetBtn">Reset ke bawaan</button>
+  </div>
+
+  <div class="cover">
+    <div class="kicker" data-edit-id="kicker">Class of 2026 · Photoshoot Moodboard</div>
+    <h1><span data-edit-id="title1">Graduation</span><br><em data-edit-id="title2">Moodboard</em></h1>
+    <div class="sub" data-edit-id="sub">
+      Kumpulan referensi visual untuk sesi foto wisuda — dari makan malam elegan
+      sampai golden hour di tepi laut. Tiga sesi, satu cerita.
+    </div>
+    <div class="venues">
+      <span data-edit-id="venue1">L'Osteria</span>
+      <span data-edit-id="venue2">Dreamland Beach</span>
+    </div>
+  </div>
+
+  <section class="spread">
+    <div class="spread-head">
+      <div class="num">01</div>
+      <div class="titles"><div class="eyebrow" data-edit-id="eyebrow-solo">Sesi Satu</div><h2 data-edit-id="title-solo">All About Me</h2></div>
+    </div>
+    <div class="grid" data-section="solo"></div>
+  </section>
+
+  <section class="spread">
+    <div class="spread-head">
+      <div class="num">02</div>
+      <div class="titles"><div class="eyebrow" data-edit-id="eyebrow-boyfriend">Sesi Dua</div><h2 data-edit-id="title-boyfriend">With My Boyfriend</h2></div>
+    </div>
+    <div class="grid" data-section="boyfriend"></div>
+  </section>
+
+  <section class="spread">
+    <div class="spread-head">
+      <div class="num">03</div>
+      <div class="titles"><div class="eyebrow" data-edit-id="eyebrow-bestfriend">Sesi Tiga</div><h2 data-edit-id="title-bestfriend">With Tama</h2></div>
+    </div>
+    <div class="grid" data-section="bestfriend"></div>
+  </section>
+
+  <section class="spread">
+    <div class="spread-head">
+      <div class="num">✦</div>
+      <div class="titles"><div class="eyebrow" data-edit-id="eyebrow-restaurant">Mood &amp; Setting</div><h2 data-edit-id="title-restaurant">L'Osteria Evening</h2></div>
+    </div>
+    <div class="grid" data-section="restaurant"></div>
+  </section>
+
+  <section class="spread">
+    <div class="spread-head">
+      <div class="num">✦</div>
+      <div class="titles"><div class="eyebrow" data-edit-id="eyebrow-poseref">Behind The Scenes</div><h2 data-edit-id="title-poseref">Pose Reference</h2></div>
+    </div>
+    <div class="grid" data-section="poseref"></div>
+  </section>
+
+  <footer data-edit-id="footer">Made with <span class="heart">♥</span> for wisuda day — L'Osteria &amp; Dreamland Beach</footer>
+
+<script>
+const BASELINE = {"solo": ["solo/%20-10.jpg", "solo/%20-11.jpg", "solo/%20-12.jpg", "solo/%20-13.jpg", "solo/%20-14.jpg", "solo/%20-15.jpg", "solo/%20-16.jpg", "solo/%20-23.jpg", "solo/%20-24.jpg", "solo/%20-25.jpg", "solo/%20-7.jpg", "solo/%20-8.jpg", "solo/%20-9.jpg", "solo/%3C3.jpg", "solo/Grad%21.jpg", "solo/Wisuda%20di%20Pantai.jpg", "solo/grad%20photos%20at%20the%20beach.jpg", "solo/grad%20pic.jpg", "solo/graduate%21.jpg", "solo/senior%20photo%20session.jpg", "solo/%F0%9F%8E%93.jpg"], "boyfriend": ["boyfriend/%20-20.jpg", "boyfriend/%20-21.jpg", "boyfriend/%40natalylorenzo%20.jpg", "boyfriend/couple%20photograhhy%20-%2087.jpg", "boyfriend/%F0%9F%8E%93%E2%9D%A4%EF%B8%8F%20A%20Cap%20Full%20of%20Dreams%2C%20A%20Heart%20Full%20of%20Love.jpg"], "bestfriend": ["bestfriend/%20-22.jpg", "bestfriend/beach%20grad%20shoot.jpg", "bestfriend/graduation.jpg"], "restaurant": ["restaurant/%20-17.jpg", "restaurant/%20-18.jpg", "restaurant/%20-19.jpg", "restaurant/%40nasso_saint.jpg", "restaurant/Google%20Image%20Result%20for%20https___i_pinimg.com_474x_94_f1_35_94f135da69419b961b13c486b6d50097.jpg", "restaurant/Grad%20photos.jpg", "restaurant/Instagram%20photo%20by%20Mirror%20Palais%20%E2%80%A2%20Aug%2015%2C%202024%20at%204_01%20PM.jpg", "restaurant/date%20night.jpg", "restaurant/fashion.jpg", "restaurant/olivia%20stacey.jpg", "restaurant/perfect%20paige%F0%9F%98%BD%F0%9F%8D%B8.jpg", "restaurant/%CB%9A%CB%96%F0%93%8D%A2%D6%B4%E0%BB%8B%F0%9F%A6%A2%CB%9A.jpg"], "poseref": ["pose-ref/Fashion%20Croquis%20Back%20Poses%20%7C%20Essential%20Back%20View%20Pose%20Reference.jpg", "pose-ref/Fashion%20Croquis%20Contrapposto%20Poses%20%7C%20Elegant%20Fashion%20Figure%20Pose%20Guide.jpg", "pose-ref/Fashion%20Croquis%20Front%20Poses%20%7C%20Essential%20Pose%20Reference%20for%20Beginners.jpg", "pose-ref/Fashion%20Croquis%20Side%20Poses%20%7C%20Essential%20Side%20View%20Pose%20Reference.jpg", "pose-ref/Fashion%20Croquis%20Walking%20Poses%20%7C%20Runway%20Walk%20Pose%20Reference%20Guide.jpg"]};
+const SECTION_KEYS = Object.keys(BASELINE);
+const STORE_KEY = "wisuda-moodboard-state-v2";
+
+function defaultOrder() {
+  const order = {};
+  SECTION_KEYS.forEach(k => { order[k] = [...BASELINE[k]]; });
+  return order;
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!parsed.order) parsed.order = defaultOrder();
+      if (!parsed.customData) parsed.customData = {};
+      if (!parsed.text) parsed.text = {};
+      return parsed;
+    }
+  } catch (e) {}
+  return { order: defaultOrder(), customData: {}, text: {} };
+}
+function saveState() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch (e) { alert("Penyimpanan browser penuh — coba hapus beberapa foto dulu sebelum nambah lagi."); }
+}
+
+let state = loadState();
+
+// ---- text editing ----
+function applySavedText() {
+  document.querySelectorAll("[data-edit-id]").forEach(el => {
+    const id = el.getAttribute("data-edit-id");
+    if (state.text[id] !== undefined) el.textContent = state.text[id];
+  });
+}
+function setEditMode(on) {
+  document.body.classList.toggle("edit-mode", on);
+  document.getElementById("editBtn").textContent = "Edit Teks: " + (on ? "ON" : "OFF");
+  document.getElementById("editBtn").classList.toggle("active", on);
+  document.querySelectorAll("[data-edit-id]").forEach(el => {
+    el.contentEditable = on ? "true" : "false";
+  });
+}
+document.querySelectorAll("[data-edit-id]").forEach(el => {
+  el.addEventListener("input", () => {
+    const id = el.getAttribute("data-edit-id");
+    state.text[id] = el.textContent;
+    saveState();
+  });
+});
+document.getElementById("editBtn").onclick = () => {
+  setEditMode(!document.body.classList.contains("edit-mode"));
+};
+
+// ---- photos ----
+function compressFile(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > maxDim) { height *= maxDim / width; width = maxDim; }
+      else if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function resolveSrc(id) {
+  return state.customData[id] !== undefined ? state.customData[id] : id;
+}
+
+function removeIdEverywhere(id) {
+  SECTION_KEYS.forEach(k => {
+    state.order[k] = state.order[k].filter(x => x !== id);
+  });
+  if (state.customData[id] !== undefined) delete state.customData[id];
+}
+
+function renderAll() { SECTION_KEYS.forEach(renderSection); }
+
+function renderSection(key) {
+  const grid = document.querySelector(`.grid[data-section="${key}"]`);
+  grid.innerHTML = "";
+
+  state.order[key].forEach((id, idx) => {
+    const div = document.createElement("div");
+    div.className = "ph";
+    div.draggable = true;
+    div.dataset.id = id;
+    div.dataset.section = key;
+
+    const img = document.createElement("img");
+    img.src = resolveSrc(id); img.loading = "lazy";
+
+    const badge = document.createElement("div");
+    badge.className = "num-badge";
+    badge.textContent = idx + 1;
+
+    const del = document.createElement("div");
+    del.className = "del"; del.textContent = "×";
+    del.title = "Hapus foto ini";
+    del.onclick = (e) => {
+      e.stopPropagation();
+      removeIdEverywhere(id);
+      saveState();
+      renderAll();
+    };
+
+    div.appendChild(img); div.appendChild(badge); div.appendChild(del);
+
+    div.addEventListener("dragstart", () => { div.classList.add("dragging"); });
+    div.addEventListener("dragend", () => { div.classList.remove("dragging"); });
+
+    grid.appendChild(div);
+  });
+
+  const addTile = document.createElement("div");
+  addTile.className = "add-tile";
+  addTile.innerHTML = '<div class="plus">+</div><div>Tambah Foto</div>';
+  const input = document.createElement("input");
+  input.type = "file"; input.accept = "image/*"; input.multiple = true;
+  input.style.display = "none";
+  addTile.onclick = () => input.click();
+  input.onchange = () => addFiles(key, input.files);
+  addTile.appendChild(input);
+  grid.appendChild(addTile);
+
+  grid.ondragover = (e) => {
+    e.preventDefault();
+    grid.classList.add("dragover");
+    const dragging = document.querySelector(".ph.dragging");
+    if (!dragging) return;
+    const after = getDragAfterElement(grid, e.clientX, e.clientY);
+    if (after == null) grid.insertBefore(dragging, addTile);
+    else grid.insertBefore(dragging, after);
+  };
+  grid.ondragleave = (e) => {
+    if (!grid.contains(e.relatedTarget)) grid.classList.remove("dragover");
+  };
+  grid.ondrop = (e) => {
+    e.preventDefault();
+    grid.classList.remove("dragover");
+    const dragging = document.querySelector(".ph.dragging");
+    if (dragging) {
+      const id = dragging.dataset.id;
+      const newOrderIds = [...grid.querySelectorAll(".ph")].map(el => el.dataset.id);
+      removeIdEverywhere(id);
+      const insertAt = newOrderIds.indexOf(id);
+      state.order[key].splice(insertAt === -1 ? state.order[key].length : insertAt, 0, id);
+      saveState();
+      renderAll();
+      return;
+    }
+    addFiles(key, e.dataTransfer.files);
+  };
+}
+
+function getDragAfterElement(grid, x, y) {
+  const els = [...grid.querySelectorAll(".ph:not(.dragging)")];
+  let closest = { dist: Infinity, element: null };
+  for (const child of els) {
+    const box = child.getBoundingClientRect();
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
+    const dist = Math.hypot(x - cx, y - cy);
+    if (dist < closest.dist) closest = { dist, element: child, cx, cy };
+  }
+  if (!closest.element) return null;
+  const isAfter = x > closest.cx;
+  return isAfter ? closest.element.nextSibling : closest.element;
+}
+
+async function addFiles(key, fileList) {
+  const files = Array.from(fileList).filter(f => f.type.startsWith("image/"));
+  if (!files.length) return;
+  for (const f of files) {
+    try {
+      const dataUrl = await compressFile(f, 1600, 0.82);
+      const id = "custom-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+      state.customData[id] = dataUrl;
+      state.order[key].push(id);
+    } catch (e) { console.error("gagal proses foto", f.name, e); }
+  }
+  saveState();
+  renderAll();
+}
+
+applySavedText();
+renderAll();
+
+document.getElementById("resetBtn").onclick = () => {
+  if (confirm("Kembalikan moodboard ke set foto, urutan & teks awal? Semua perubahan kamu akan hilang.")) {
+    localStorage.removeItem(STORE_KEY);
+    location.reload();
+  }
+};
+
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => e.preventDefault());
+</script>
+</body>
+</html>
