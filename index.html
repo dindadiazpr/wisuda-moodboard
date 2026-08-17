@@ -411,7 +411,10 @@ function updateGhStatus() {
 
 async function loadStateFromServer() {
   try {
-    const res = await fetch(GH_API + "?_=" + Date.now(), { headers: { "Accept": "application/vnd.github+json" }, cache: "no-store" });
+    const token = getToken();
+    const headers = { "Accept": "application/vnd.github+json" };
+    if (token) headers["Authorization"] = "Bearer " + token;
+    const res = await fetch(GH_API + "?_=" + Date.now(), { headers, cache: "no-store" });
     if (res.status === 404) return false;
     if (res.ok) {
       const json = await res.json();
@@ -466,12 +469,19 @@ let pendingSaveTimer = null;
 let cachedCommitSha = null;
 let cachedTreeSha = null;
 
-async function refreshRefCache() {
+function readHeaders(token) {
+  const h = { "Accept": "application/vnd.github+json" };
+  if (token) h["Authorization"] = "Bearer " + token;
+  return h;
+}
+
+async function refreshRefCache(token) {
   try {
-    const refRes = await fetch(`${GH_GIT_API}/ref/heads/main`, { cache: "no-store" });
+    const headers = readHeaders(token);
+    const refRes = await fetch(`${GH_GIT_API}/ref/heads/main`, { headers, cache: "no-store" });
     if (!refRes.ok) return false;
     const refJson = await refRes.json();
-    const commitRes = await fetch(`${GH_GIT_API}/commits/${refJson.object.sha}`, { cache: "no-store" });
+    const commitRes = await fetch(`${GH_GIT_API}/commits/${refJson.object.sha}`, { headers, cache: "no-store" });
     if (!commitRes.ok) return false;
     const commitJson = await commitRes.json();
     cachedCommitSha = refJson.object.sha;
@@ -520,7 +530,7 @@ async function performSave(opts) {
     if (uploads.length) setSaveStatus(`upload ${uploads.length} foto baru...`);
 
     if (!cachedCommitSha || !cachedTreeSha) {
-      const ok = await refreshRefCache();
+      const ok = await refreshRefCache(token);
       if (!ok) throw new Error("gagal baca ref");
     }
     const latestCommitSha = cachedCommitSha;
@@ -563,7 +573,7 @@ async function performSave(opts) {
     } else if ((updateRefRes.status === 422 || updateRefRes.status === 409) && retriesLeft > 0) {
       // cache basi (ada commit baru dari tab/device lain) — refresh & coba lagi
       setSaveStatus("nyinkron ulang...");
-      await refreshRefCache();
+      await refreshRefCache(token);
       return performSave({ forceModal, retriesLeft: retriesLeft - 1 });
     } else {
       setSaveStatus("gagal sinkron — klik Simpan lagi", true);
@@ -769,7 +779,7 @@ async function addFiles(key, fileList) {
 (async function init() {
   updateGhStatus();
   setSaveStatus("memuat dari GitHub...");
-  const [hadSavedData] = await Promise.all([loadStateFromServer(), refreshRefCache()]);
+  const [hadSavedData] = await Promise.all([loadStateFromServer(), refreshRefCache(getToken())]);
   applySavedText();
   renderAll();
   if (hadSavedData) setSaveStatus("dimuat dari GitHub");
