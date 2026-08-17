@@ -432,11 +432,12 @@ async function loadStateFromServer() {
   return false;
 }
 
-async function saveState() {
+async function saveState(opts) {
+  const forceModal = opts && opts.forceModal;
   const token = getToken();
   if (!token) {
-    setSaveStatus("belum connect ke GitHub — klik 'Connect GitHub'", true);
-    openGhModal();
+    setSaveStatus("belum connect — klik 'Connect GitHub' buat nyimpen", true);
+    if (forceModal) openGhModal();
     return;
   }
   try {
@@ -516,11 +517,14 @@ function setEditMode(on) {
     el.contentEditable = on ? "true" : "false";
   });
 }
+let textSaveTimer = null;
 document.querySelectorAll("[data-edit-id]").forEach(el => {
   el.addEventListener("input", () => {
     const id = el.getAttribute("data-edit-id");
     state.text[id] = el.textContent;
-    saveState();
+    clearTimeout(textSaveTimer);
+    setSaveStatus("mengetik...");
+    textSaveTimer = setTimeout(() => saveState(), 1000);
   });
 });
 document.getElementById("editBtn").onclick = () => {
@@ -679,7 +683,7 @@ async function addFiles(key, fileList) {
 })();
 
 document.getElementById("saveBtn").onclick = () => {
-  saveState();
+  saveState({ forceModal: true });
 };
 
 document.getElementById("resetBtn").onclick = async () => {
