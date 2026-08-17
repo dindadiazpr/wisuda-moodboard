@@ -409,26 +409,36 @@ function updateGhStatus() {
   }
 }
 
+let stateLoadedOk = false;
+
 async function loadStateFromServer() {
   try {
     const token = getToken();
     const headers = { "Accept": "application/vnd.github+json" };
     if (token) headers["Authorization"] = "Bearer " + token;
     const res = await fetch(GH_API + "?_=" + Date.now(), { headers, cache: "no-store" });
-    if (res.status === 404) return false;
+    if (res.status === 404) { stateLoadedOk = true; return false; }
     if (res.ok) {
       const json = await res.json();
       const data = JSON.parse(base64ToUtf8(json.content));
+      stateLoadedOk = true;
       if (data && (data.order || data.customData || data.text)) {
         state.order = data.order || defaultOrder();
         state.customData = data.customData || {};
         state.text = data.text || {};
         return true;
       }
+      return false;
     }
+    let detail = "";
+    try { detail = (await res.json()).message || ""; } catch (e2) {}
+    setSaveStatus(`GAGAL MUAT (${res.status}) ${detail} — foto di bawah ini BUKAN yang terbaru!`, true);
+    throw new Error("load-failed-" + res.status);
   } catch (e) {
     console.warn("Gagal load dari GitHub", e);
-    setSaveStatus("gagal load dari GitHub");
+    if (!/^load-failed-/.test(e.message)) {
+      setSaveStatus("GAGAL MUAT — cek koneksi. Foto di bawah BUKAN yang terbaru!", true);
+    }
   }
   return false;
 }
@@ -475,19 +485,32 @@ function readHeaders(token) {
   return h;
 }
 
+let lastRefError = "";
+
 async function refreshRefCache(token) {
   try {
     const headers = readHeaders(token);
     const refRes = await fetch(`${GH_GIT_API}/ref/heads/main`, { headers, cache: "no-store" });
-    if (!refRes.ok) return false;
+    if (!refRes.ok) {
+      const body = await refRes.json().catch(() => ({}));
+      lastRefError = `${refRes.status} ${body.message || ""}`.trim();
+      return false;
+    }
     const refJson = await refRes.json();
     const commitRes = await fetch(`${GH_GIT_API}/commits/${refJson.object.sha}`, { headers, cache: "no-store" });
-    if (!commitRes.ok) return false;
+    if (!commitRes.ok) {
+      const body = await commitRes.json().catch(() => ({}));
+      lastRefError = `${commitRes.status} ${body.message || ""}`.trim();
+      return false;
+    }
     const commitJson = await commitRes.json();
     cachedCommitSha = refJson.object.sha;
     cachedTreeSha = commitJson.tree.sha;
     return true;
-  } catch (e) { return false; }
+  } catch (e) {
+    lastRefError = e.message;
+    return false;
+  }
 }
 
 function scheduleSave() {
@@ -525,13 +548,17 @@ async function performSave(opts) {
     if (forceModal) openGhModal();
     return;
   }
+  if (!stateLoadedOk) {
+    setSaveStatus("BLOKIR SAVE — data awal gagal dimuat, refresh dulu biar gak ketimpa!", true);
+    return;
+  }
   try {
     const uploads = await uploadPendingPhotos(token);
     if (uploads.length) setSaveStatus(`upload ${uploads.length} foto baru...`);
 
     if (!cachedCommitSha || !cachedTreeSha) {
       const ok = await refreshRefCache(token);
-      if (!ok) throw new Error("gagal baca ref");
+      if (!ok) throw new Error("gagal baca ref (" + lastRefError + ")");
     }
     const latestCommitSha = cachedCommitSha;
     const baseTreeSha = cachedTreeSha;
