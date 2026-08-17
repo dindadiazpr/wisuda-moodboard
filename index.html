@@ -460,6 +460,31 @@ async function uploadPendingPhotos(token) {
 
 let saveInProgress = false;
 let saveQueued = false;
+let pendingSaveTimer = null;
+
+// cache biar gak perlu GET ref + GET commit tiap save (motong 2 dari 5 request)
+let cachedCommitSha = null;
+let cachedTreeSha = null;
+
+async function refreshRefCache() {
+  try {
+    const refRes = await fetch(`${GH_GIT_API}/ref/heads/main`, { cache: "no-store" });
+    if (!refRes.ok) return false;
+    const refJson = await refRes.json();
+    const commitRes = await fetch(`${GH_GIT_API}/commits/${refJson.object.sha}`, { cache: "no-store" });
+    if (!commitRes.ok) return false;
+    const commitJson = await commitRes.json();
+    cachedCommitSha = refJson.object.sha;
+    cachedTreeSha = commitJson.tree.sha;
+    return true;
+  } catch (e) { return false; }
+}
+
+function scheduleSave() {
+  setSaveStatus("ada perubahan...");
+  clearTimeout(pendingSaveTimer);
+  pendingSaveTimer = setTimeout(() => saveState(), 1200);
+}
 
 async function saveState(opts) {
   opts = opts || {};
@@ -494,14 +519,12 @@ async function performSave(opts) {
     const uploads = await uploadPendingPhotos(token);
     if (uploads.length) setSaveStatus(`upload ${uploads.length} foto baru...`);
 
-    const refRes = await fetch(`${GH_GIT_API}/ref/heads/main`, { headers: authHeaders(token) });
-    if (!refRes.ok) throw new Error("gagal baca ref (" + refRes.status + ")");
-    const refJson = await refRes.json();
-    const latestCommitSha = refJson.object.sha;
-
-    const commitRes = await fetch(`${GH_GIT_API}/commits/${latestCommitSha}`, { headers: authHeaders(token) });
-    const commitJson = await commitRes.json();
-    const baseTreeSha = commitJson.tree.sha;
+    if (!cachedCommitSha || !cachedTreeSha) {
+      const ok = await refreshRefCache();
+      if (!ok) throw new Error("gagal baca ref");
+    }
+    const latestCommitSha = cachedCommitSha;
+    const baseTreeSha = cachedTreeSha;
 
     const treeEntries = uploads.map(u => ({ path: u.path, mode: "100644", type: "blob", sha: u.sha }));
     treeEntries.push({ path: GH_PATH, mode: "100644", type: "blob", content: JSON.stringify(state) });
@@ -530,14 +553,17 @@ async function performSave(opts) {
     });
 
     if (updateRefRes.ok) {
+      cachedCommitSha = newCommitJson.sha;
+      cachedTreeSha = treeJson.sha;
       setSaveStatus("tersimpan ke GitHub " + formatTime(new Date()), true);
     } else if (updateRefRes.status === 401 || updateRefRes.status === 403) {
       setSaveStatus("token gak valid / expired", true);
       setToken("");
       updateGhStatus();
     } else if ((updateRefRes.status === 422 || updateRefRes.status === 409) && retriesLeft > 0) {
-      // ada commit baru dari tab/device lain sejak kita baca ref — coba lagi dari commit terbaru
+      // cache basi (ada commit baru dari tab/device lain) — refresh & coba lagi
       setSaveStatus("nyinkron ulang...");
+      await refreshRefCache();
       return performSave({ forceModal, retriesLeft: retriesLeft - 1 });
     } else {
       setSaveStatus("gagal sinkron — klik Simpan lagi", true);
@@ -588,14 +614,11 @@ function setEditMode(on) {
     el.contentEditable = on ? "true" : "false";
   });
 }
-let textSaveTimer = null;
 document.querySelectorAll("[data-edit-id]").forEach(el => {
   el.addEventListener("input", () => {
     const id = el.getAttribute("data-edit-id");
     state.text[id] = el.textContent;
-    clearTimeout(textSaveTimer);
-    setSaveStatus("mengetik...");
-    textSaveTimer = setTimeout(() => saveState(), 1000);
+    scheduleSave();
   });
 });
 document.getElementById("editBtn").onclick = () => {
@@ -660,7 +683,7 @@ function renderSection(key) {
     del.onclick = (e) => {
       e.stopPropagation();
       removeIdEverywhere(id);
-      saveState();
+      scheduleSave();
       renderAll();
     };
 
@@ -705,7 +728,7 @@ function renderSection(key) {
       removeIdEverywhere(id);
       const insertAt = newOrderIds.indexOf(id);
       state.order[key].splice(insertAt === -1 ? state.order[key].length : insertAt, 0, id);
-      saveState();
+      scheduleSave();
       renderAll();
       return;
     }
@@ -739,14 +762,14 @@ async function addFiles(key, fileList) {
       state.order[key].push(id);
     } catch (e) { console.error("gagal proses foto", f.name, e); }
   }
-  saveState();
+  scheduleSave();
   renderAll();
 }
 
 (async function init() {
   updateGhStatus();
   setSaveStatus("memuat dari GitHub...");
-  const hadSavedData = await loadStateFromServer();
+  const [hadSavedData] = await Promise.all([loadStateFromServer(), refreshRefCache()]);
   applySavedText();
   renderAll();
   if (hadSavedData) setSaveStatus("dimuat dari GitHub");
@@ -754,6 +777,7 @@ async function addFiles(key, fileList) {
 })();
 
 document.getElementById("saveBtn").onclick = () => {
+  clearTimeout(pendingSaveTimer);
   saveState({ forceModal: true });
 };
 
