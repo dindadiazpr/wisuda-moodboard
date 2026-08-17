@@ -458,7 +458,29 @@ async function uploadPendingPhotos(token) {
   return uploaded;
 }
 
+let saveInProgress = false;
+let saveQueued = false;
+
 async function saveState(opts) {
+  opts = opts || {};
+  if (saveInProgress) {
+    saveQueued = true;
+    if (opts.forceModal && !getToken()) openGhModal();
+    return;
+  }
+  saveInProgress = true;
+  try {
+    await performSave(opts);
+  } finally {
+    saveInProgress = false;
+    if (saveQueued) {
+      saveQueued = false;
+      saveState();
+    }
+  }
+}
+
+async function performSave(opts) {
   opts = opts || {};
   const forceModal = opts.forceModal;
   const retriesLeft = opts.retriesLeft === undefined ? 2 : opts.retriesLeft;
@@ -516,7 +538,7 @@ async function saveState(opts) {
     } else if ((updateRefRes.status === 422 || updateRefRes.status === 409) && retriesLeft > 0) {
       // ada commit baru dari tab/device lain sejak kita baca ref — coba lagi dari commit terbaru
       setSaveStatus("nyinkron ulang...");
-      return saveState({ forceModal, retriesLeft: retriesLeft - 1 });
+      return performSave({ forceModal, retriesLeft: retriesLeft - 1 });
     } else {
       setSaveStatus("gagal sinkron — klik Simpan lagi", true);
     }
