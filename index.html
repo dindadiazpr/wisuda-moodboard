@@ -85,6 +85,54 @@
     flex-wrap: wrap;
   }
   .toolbar .hint { color: var(--silver-dim); }
+  .toolbar .save-status {
+    color: var(--silver-dim);
+    font-style: italic;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    min-width: 8em;
+  }
+  .toolbar .save-status.just-saved { color: var(--maroon-bright); font-style: normal; }
+  #saveBtn { border-color: var(--maroon-bright); }
+
+  .gh-connect { display: flex; align-items: center; gap: 0.4rem; }
+  .gh-connect input[type="password"] {
+    background: var(--black-2);
+    border: 1px solid var(--line);
+    color: var(--silver);
+    padding: 0.45rem 0.6rem;
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: normal;
+    text-transform: none;
+    width: 11em;
+  }
+  .gh-connect .gh-status { color: var(--silver-dim); }
+  .gh-connect .gh-status.connected { color: #4caf6a; text-transform: none; letter-spacing: 0.04em; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    padding: 5vw;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--black-2); border: 1px solid var(--maroon);
+    max-width: 32em; padding: 2rem;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem; line-height: 1.7; color: var(--silver);
+  }
+  .modal h3 { font-family: Georgia, serif; font-weight: 400; color: var(--silver); margin-top: 0; }
+  .modal ol { padding-left: 1.2em; }
+  .modal a { color: var(--maroon-bright); }
+  .modal .modal-actions { display: flex; gap: 0.6rem; margin-top: 1.4rem; justify-content: flex-end; }
+  .modal button {
+    background: transparent; border: 1px solid var(--maroon); color: var(--silver);
+    padding: 0.5rem 1rem; font-family: inherit; font-size: 0.8rem; cursor: pointer;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .modal button:hover { background: var(--maroon); color: #fff; }
+  .modal button.primary { background: var(--maroon-bright); border-color: var(--maroon-bright); color: #fff; }
   .toolbar button {
     background: transparent;
     border: 1px solid var(--maroon);
@@ -215,8 +263,34 @@
 
   <div class="toolbar">
     <span class="hint">Drag foto buat nambah/tukar urutan &middot; angka = urutan tiap sesi</span>
+    <div class="gh-connect" id="ghConnectBox">
+      <span class="gh-status" id="ghStatus">Belum connect</span>
+      <button id="ghConnectBtn">🔑 Connect GitHub</button>
+    </div>
+    <button id="saveBtn">💾 Simpan</button>
+    <span class="save-status" id="saveStatus">belum ada perubahan</span>
     <button id="editBtn">Edit Teks: OFF</button>
     <button id="resetBtn">Reset ke bawaan</button>
+  </div>
+
+  <div class="modal-backdrop" id="ghModal">
+    <div class="modal">
+      <h3>Connect ke GitHub</h3>
+      <p>Biar perubahan kamu (foto, urutan, teks) beneran ke-simpen ke repo GitHub kamu, tempel token akses di sini. Kalau belum punya:</p>
+      <ol>
+        <li>Buka <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a></li>
+        <li>"Repository access" &rarr; pilih <strong>Only select repositories</strong> &rarr; centang <strong>wisuda-moodboard</strong></li>
+        <li>"Permissions" &rarr; <strong>Repository permissions</strong> &rarr; <strong>Contents</strong> &rarr; set ke <strong>Read and write</strong></li>
+        <li>Generate token, lalu copy (cuma kelihatan sekali)</li>
+        <li>Tempel di bawah ini</li>
+      </ol>
+      <input type="password" id="ghTokenInput" placeholder="github_pat_..." style="width:100%; margin-top:0.5rem; box-sizing:border-box;">
+      <p style="color:var(--silver-dim); font-size:0.78rem;">Token ini cuma disimpen sementara di tab browser ini (hilang kalau tab ditutup), gak pernah ketulis ke halaman/repo. Kalau kamu buka dari device lain, tempel lagi di sana.</p>
+      <div class="modal-actions">
+        <button id="ghCancelBtn">Batal</button>
+        <button class="primary" id="ghSaveTokenBtn">Connect</button>
+      </div>
+    </div>
   </div>
 
   <div class="cover">
@@ -277,33 +351,155 @@
 <script>
 const BASELINE = {"solo": ["solo/%20-10.jpg", "solo/%20-11.jpg", "solo/%20-12.jpg", "solo/%20-13.jpg", "solo/%20-14.jpg", "solo/%20-15.jpg", "solo/%20-16.jpg", "solo/%20-23.jpg", "solo/%20-24.jpg", "solo/%20-25.jpg", "solo/%20-7.jpg", "solo/%20-8.jpg", "solo/%20-9.jpg", "solo/%3C3.jpg", "solo/Grad%21.jpg", "solo/Wisuda%20di%20Pantai.jpg", "solo/grad%20photos%20at%20the%20beach.jpg", "solo/grad%20pic.jpg", "solo/graduate%21.jpg", "solo/senior%20photo%20session.jpg", "solo/%F0%9F%8E%93.jpg"], "boyfriend": ["boyfriend/%20-20.jpg", "boyfriend/%20-21.jpg", "boyfriend/%40natalylorenzo%20.jpg", "boyfriend/couple%20photograhhy%20-%2087.jpg", "boyfriend/%F0%9F%8E%93%E2%9D%A4%EF%B8%8F%20A%20Cap%20Full%20of%20Dreams%2C%20A%20Heart%20Full%20of%20Love.jpg"], "bestfriend": ["bestfriend/%20-22.jpg", "bestfriend/beach%20grad%20shoot.jpg", "bestfriend/graduation.jpg"], "restaurant": ["restaurant/%20-17.jpg", "restaurant/%20-18.jpg", "restaurant/%20-19.jpg", "restaurant/%40nasso_saint.jpg", "restaurant/Google%20Image%20Result%20for%20https___i_pinimg.com_474x_94_f1_35_94f135da69419b961b13c486b6d50097.jpg", "restaurant/Grad%20photos.jpg", "restaurant/Instagram%20photo%20by%20Mirror%20Palais%20%E2%80%A2%20Aug%2015%2C%202024%20at%204_01%20PM.jpg", "restaurant/date%20night.jpg", "restaurant/fashion.jpg", "restaurant/olivia%20stacey.jpg", "restaurant/perfect%20paige%F0%9F%98%BD%F0%9F%8D%B8.jpg", "restaurant/%CB%9A%CB%96%F0%93%8D%A2%D6%B4%E0%BB%8B%F0%9F%A6%A2%CB%9A.jpg"], "poseref": ["pose-ref/Fashion%20Croquis%20Back%20Poses%20%7C%20Essential%20Back%20View%20Pose%20Reference.jpg", "pose-ref/Fashion%20Croquis%20Contrapposto%20Poses%20%7C%20Elegant%20Fashion%20Figure%20Pose%20Guide.jpg", "pose-ref/Fashion%20Croquis%20Front%20Poses%20%7C%20Essential%20Pose%20Reference%20for%20Beginners.jpg", "pose-ref/Fashion%20Croquis%20Side%20Poses%20%7C%20Essential%20Side%20View%20Pose%20Reference.jpg", "pose-ref/Fashion%20Croquis%20Walking%20Poses%20%7C%20Runway%20Walk%20Pose%20Reference%20Guide.jpg"]};
 const SECTION_KEYS = Object.keys(BASELINE);
-const STORE_KEY = "wisuda-moodboard-state-v2";
-
 function defaultOrder() {
   const order = {};
   SECTION_KEYS.forEach(k => { order[k] = [...BASELINE[k]]; });
   return order;
 }
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (!parsed.order) parsed.order = defaultOrder();
-      if (!parsed.customData) parsed.customData = {};
-      if (!parsed.text) parsed.text = {};
-      return parsed;
-    }
-  } catch (e) {}
-  return { order: defaultOrder(), customData: {}, text: {} };
-}
-function saveState() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
-  catch (e) { alert("Penyimpanan browser penuh — coba hapus beberapa foto dulu sebelum nambah lagi."); }
+function formatTime(d) {
+  return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-let state = loadState();
+function setSaveStatus(text, flash) {
+  const el = document.getElementById("saveStatus");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("just-saved", !!flash);
+  if (flash) setTimeout(() => el.classList.remove("just-saved"), 900);
+}
+
+// ---- GitHub-backed persistence ----
+const GH_OWNER = "dindadiazpr";
+const GH_REPO = "wisuda-moodboard";
+const GH_PATH = "moodboard-data.json";
+const GH_API = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+const GH_TOKEN_KEY = "wisuda-gh-token";
+let ghSha = null;
+
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+function base64ToUtf8(b64) {
+  const binary = atob(b64.replace(/\n/g, ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function getToken() { return sessionStorage.getItem(GH_TOKEN_KEY) || ""; }
+function setToken(t) { if (t) sessionStorage.setItem(GH_TOKEN_KEY, t); else sessionStorage.removeItem(GH_TOKEN_KEY); }
+
+function updateGhStatus() {
+  const el = document.getElementById("ghStatus");
+  const btn = document.getElementById("ghConnectBtn");
+  if (getToken()) {
+    el.textContent = "Connected";
+    el.classList.add("connected");
+    btn.textContent = "🔓 Disconnect";
+  } else {
+    el.textContent = "Belum connect";
+    el.classList.remove("connected");
+    btn.textContent = "🔑 Connect GitHub";
+  }
+}
+
+async function loadStateFromServer() {
+  try {
+    const res = await fetch(GH_API, { headers: { "Accept": "application/vnd.github+json" } });
+    if (res.status === 404) return false;
+    if (res.ok) {
+      const json = await res.json();
+      ghSha = json.sha;
+      const data = JSON.parse(base64ToUtf8(json.content));
+      if (data && (data.order || data.customData || data.text)) {
+        state.order = data.order || defaultOrder();
+        state.customData = data.customData || {};
+        state.text = data.text || {};
+        return true;
+      }
+    }
+  } catch (e) {
+    console.warn("Gagal load dari GitHub", e);
+    setSaveStatus("gagal load dari GitHub");
+  }
+  return false;
+}
+
+async function saveState() {
+  const token = getToken();
+  if (!token) {
+    setSaveStatus("belum connect ke GitHub — klik 'Connect GitHub'", true);
+    openGhModal();
+    return;
+  }
+  try {
+    const body = {
+      message: "Update moodboard — " + new Date().toISOString(),
+      content: utf8ToBase64(JSON.stringify(state)),
+      branch: "main"
+    };
+    if (ghSha) body.sha = ghSha;
+    const res = await fetch(GH_API, {
+      method: "PUT",
+      headers: {
+        "Accept": "application/vnd.github+json",
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      ghSha = json.content.sha;
+      setSaveStatus("tersimpan ke GitHub " + formatTime(new Date()), true);
+    } else if (res.status === 401 || res.status === 403) {
+      setSaveStatus("token gak valid / expired", true);
+      setToken("");
+      updateGhStatus();
+    } else if (res.status === 409) {
+      setSaveStatus("bentrok, coba lagi...", true);
+      await loadStateFromServer();
+      renderAll();
+    } else {
+      setSaveStatus("gagal simpan (GitHub error)", true);
+    }
+  } catch (e) {
+    setSaveStatus("gagal simpan — cek koneksi internet", true);
+  }
+}
+
+function openGhModal() { document.getElementById("ghModal").classList.add("open"); }
+function closeGhModal() { document.getElementById("ghModal").classList.remove("open"); }
+
+document.getElementById("ghConnectBtn").onclick = () => {
+  if (getToken()) {
+    if (confirm("Disconnect dari GitHub? Kamu perlu tempel token lagi buat nyimpen.")) {
+      setToken("");
+      updateGhStatus();
+    }
+  } else {
+    document.getElementById("ghTokenInput").value = "";
+    openGhModal();
+  }
+};
+document.getElementById("ghCancelBtn").onclick = closeGhModal;
+document.getElementById("ghSaveTokenBtn").onclick = () => {
+  const val = document.getElementById("ghTokenInput").value.trim();
+  if (!val) return;
+  setToken(val);
+  updateGhStatus();
+  closeGhModal();
+  saveState();
+};
+
+let state = { order: defaultOrder(), customData: {}, text: {} };
 
 // ---- text editing ----
 function applySavedText() {
@@ -472,14 +668,25 @@ async function addFiles(key, fileList) {
   renderAll();
 }
 
-applySavedText();
-renderAll();
+(async function init() {
+  updateGhStatus();
+  setSaveStatus("memuat dari GitHub...");
+  const hadSavedData = await loadStateFromServer();
+  applySavedText();
+  renderAll();
+  if (hadSavedData) setSaveStatus("dimuat dari GitHub");
+  else setSaveStatus(getToken() ? "belum ada perubahan tersimpan" : "belum connect ke GitHub");
+})();
 
-document.getElementById("resetBtn").onclick = () => {
-  if (confirm("Kembalikan moodboard ke set foto, urutan & teks awal? Semua perubahan kamu akan hilang.")) {
-    localStorage.removeItem(STORE_KEY);
-    location.reload();
-  }
+document.getElementById("saveBtn").onclick = () => {
+  saveState();
+};
+
+document.getElementById("resetBtn").onclick = async () => {
+  if (!confirm("Kembalikan moodboard ke set foto, urutan & teks awal? Semua perubahan kamu akan hilang.")) return;
+  state = { order: defaultOrder(), customData: {}, text: {} };
+  await saveState();
+  location.reload();
 };
 
 window.addEventListener("dragover", e => e.preventDefault());
