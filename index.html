@@ -453,6 +453,10 @@ function authHeaders(token) {
 const GH_GIT_API = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/git`;
 
 async function uploadPendingPhotos(token) {
+  // penting: JANGAN ubah state.customData[id] di sini. Kalau save gagal di
+  // tengah jalan (tree/commit/ref), foto yang udah "ditandai selesai" tapi
+  // belum kecommit beneran bakal jadi broken image permanen. Path baru
+  // dipasang ke state SETELAH commit+ref beneran sukses (lihat performSave).
   const pending = Object.entries(state.customData).filter(([id, val]) => val.startsWith("data:"));
   const uploaded = [];
   for (const [id, dataUrl] of pending) {
@@ -464,9 +468,7 @@ async function uploadPendingPhotos(token) {
     });
     if (!res.ok) throw new Error("upload foto gagal (" + res.status + ")");
     const json = await res.json();
-    const path = "uploads/" + id + ".jpg";
-    uploaded.push({ path, sha: json.sha });
-    state.customData[id] = path;
+    uploaded.push({ id, path: "uploads/" + id + ".jpg", sha: json.sha });
   }
   return uploaded;
 }
@@ -563,8 +565,14 @@ async function performSave(opts) {
     const latestCommitSha = cachedCommitSha;
     const baseTreeSha = cachedTreeSha;
 
+    // snapshot: JSON yang dicommit harus udah nunjuk ke path baru (biar gak balik ketuker base64),
+    // tapi state.customData asli baru diubah SETELAH commit ini beneran sukses.
+    const projectedCustomData = { ...state.customData };
+    uploads.forEach(u => { projectedCustomData[u.id] = u.path; });
+    const projectedState = { order: state.order, text: state.text, customData: projectedCustomData };
+
     const treeEntries = uploads.map(u => ({ path: u.path, mode: "100644", type: "blob", sha: u.sha }));
-    treeEntries.push({ path: GH_PATH, mode: "100644", type: "blob", content: JSON.stringify(state) });
+    treeEntries.push({ path: GH_PATH, mode: "100644", type: "blob", content: JSON.stringify(projectedState) });
 
     const treeRes = await fetch(`${GH_GIT_API}/trees`, {
       method: "POST", headers: authHeaders(token),
@@ -590,9 +598,11 @@ async function performSave(opts) {
     });
 
     if (updateRefRes.ok) {
+      uploads.forEach(u => { state.customData[u.id] = u.path; });
       cachedCommitSha = newCommitJson.sha;
       cachedTreeSha = treeJson.sha;
       setSaveStatus("tersimpan ke GitHub " + formatTime(new Date()), true);
+      renderAll();
     } else if (updateRefRes.status === 401 || updateRefRes.status === 403) {
       setSaveStatus("token gak valid / expired", true);
       setToken("");
