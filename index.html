@@ -687,10 +687,14 @@ function resolveSrc(id) {
   return state.customData[id] !== undefined ? state.customData[id] : id;
 }
 
-function removeIdEverywhere(id) {
+function removeIdFromOrder(id) {
   SECTION_KEYS.forEach(k => {
     state.order[k] = state.order[k].filter(x => x !== id);
   });
+}
+
+function removeIdEverywhere(id) {
+  removeIdFromOrder(id);
   if (state.customData[id] !== undefined) delete state.customData[id];
 }
 
@@ -762,7 +766,7 @@ function renderSection(key) {
     if (dragging) {
       const id = dragging.dataset.id;
       const newOrderIds = [...grid.querySelectorAll(".ph")].map(el => el.dataset.id);
-      removeIdEverywhere(id);
+      removeIdFromOrder(id);
       const insertAt = newOrderIds.indexOf(id);
       state.order[key].splice(insertAt === -1 ? state.order[key].length : insertAt, 0, id);
       scheduleSave();
